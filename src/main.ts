@@ -8,6 +8,7 @@ import minimatch from "minimatch";
 const GITHUB_TOKEN: string = core.getInput("GITHUB_TOKEN");
 const OPENAI_API_KEY: string = core.getInput("OPENAI_API_KEY");
 const OPENAI_API_MODEL: string = core.getInput("OPENAI_API_MODEL");
+const PROMPT: string = core.getInput("PROMPT");
 
 const octokit = new Octokit({ auth: GITHUB_TOKEN });
 
@@ -25,7 +26,7 @@ interface PRDetails {
 
 async function getPRDetails(): Promise<PRDetails> {
   const { repository, number } = JSON.parse(
-    readFileSync(process.env.GITHUB_EVENT_PATH || "", "utf8")
+    readFileSync(process.env.GITHUB_EVENT_PATH || "", "utf8"),
   );
   const prResponse = await octokit.pulls.get({
     owner: repository.owner.login,
@@ -44,7 +45,7 @@ async function getPRDetails(): Promise<PRDetails> {
 async function getDiff(
   owner: string,
   repo: string,
-  pull_number: number
+  pull_number: number,
 ): Promise<string | null> {
   const response = await octokit.pulls.get({
     owner,
@@ -58,7 +59,7 @@ async function getDiff(
 
 async function analyzeCode(
   parsedDiff: File[],
-  prDetails: PRDetails
+  prDetails: PRDetails,
 ): Promise<Array<{ body: string; path: string; line: number }>> {
   const comments: Array<{ body: string; path: string; line: number }> = [];
 
@@ -86,6 +87,7 @@ function createPrompt(file: File, chunk: Chunk, prDetails: PRDetails): string {
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
 - IMPORTANT: NEVER suggest adding comments to the code.
+- "${PROMPT}"
 
 Review the following code diff in the file "${
     file.to
@@ -152,7 +154,7 @@ function createComment(
   aiResponses: Array<{
     lineNumber: string;
     reviewComment: string;
-  }>
+  }>,
 ): Array<{ body: string; path: string; line: number }> {
   return aiResponses.flatMap((aiResponse) => {
     if (!file.to) {
@@ -170,7 +172,7 @@ async function createReviewComment(
   owner: string,
   repo: string,
   pull_number: number,
-  comments: Array<{ body: string; path: string; line: number }>
+  comments: Array<{ body: string; path: string; line: number }>,
 ): Promise<void> {
   await octokit.pulls.createReview({
     owner,
@@ -185,14 +187,14 @@ async function main() {
   const prDetails = await getPRDetails();
   let diff: string | null;
   const eventData = JSON.parse(
-    readFileSync(process.env.GITHUB_EVENT_PATH ?? "", "utf8")
+    readFileSync(process.env.GITHUB_EVENT_PATH ?? "", "utf8"),
   );
 
   if (eventData.action === "opened") {
     diff = await getDiff(
       prDetails.owner,
       prDetails.repo,
-      prDetails.pull_number
+      prDetails.pull_number,
     );
   } else if (eventData.action === "synchronize") {
     const newBaseSha = eventData.before;
@@ -228,7 +230,7 @@ async function main() {
 
   const filteredDiff = parsedDiff.filter((file) => {
     return !excludePatterns.some((pattern) =>
-      minimatch(file.to ?? "", pattern)
+      minimatch(file.to ?? "", pattern),
     );
   });
 
@@ -238,7 +240,7 @@ async function main() {
       prDetails.owner,
       prDetails.repo,
       prDetails.pull_number,
-      comments
+      comments,
     );
   }
 }
