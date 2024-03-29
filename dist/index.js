@@ -179,14 +179,19 @@ function createComment(file, chunk, aiResponses) {
 }
 function createReviewComment(owner, repo, pull_number, comments) {
     return __awaiter(this, void 0, void 0, function* () {
-        // create a comment for each file
         yield octokit.pulls.createReview({
             owner,
             repo,
             pull_number,
             comments,
-            event: "APPROVE",
+            event: "COMMENT",
         });
+        const allComments = yield octokit.pulls.listReviewComments({
+            owner,
+            repo,
+            pull_number,
+        });
+        console.log("All comments:", allComments);
     });
 }
 function main() {

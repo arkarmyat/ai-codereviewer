@@ -174,14 +174,20 @@ async function createReviewComment(
   pull_number: number,
   comments: Array<{ body: string; path: string; line: number }>,
 ): Promise<void> {
-  // create a comment for each file
   await octokit.pulls.createReview({
     owner,
     repo,
     pull_number,
     comments,
-    event: "APPROVE",
+    event: "COMMENT",
   });
+
+  const allComments = await octokit.pulls.listReviewComments({
+    owner,
+    repo,
+    pull_number,
+  });
+  console.log("All comments:", allComments);
 }
 
 async function main() {
