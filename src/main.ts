@@ -181,6 +181,23 @@ async function createReviewComment(
     comments,
     event: "COMMENT",
   });
+  const promises = comments.map((comment) => {
+    //@ts-ignore
+    return octokit.rest.pulls.createReviewComment({
+      owner,
+      repo,
+      pull_number,
+      body: `${comment.path} (line ${comment.line}): ${comment.body}`,
+      commit_id: "<COMMIT_ID>", // Provide the commit ID of the pull request
+      path: comment.path,
+      position: comment.line,
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+      },
+    });
+  });
+
+  await Promise.all(promises);
 }
 
 async function main() {
