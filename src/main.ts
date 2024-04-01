@@ -181,6 +181,13 @@ async function createReviewComment(
     comments,
     event: "COMMENT",
   });
+
+  await octokit.issues.createComment({
+    owner,
+    repo,
+    issue_number: pull_number,
+    body: `I have reviewed the code. Please address the comments.`,
+  });
 }
 
 async function main() {
