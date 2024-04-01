@@ -60,8 +60,13 @@ async function getDiff(
 async function analyzeCode(
   parsedDiff: File[],
   prDetails: PRDetails,
-): Promise<Array<{ body: string; path: string; line: number }>> {
-  const comments: Array<{ body: string; path: string; line: number }> = [];
+): Promise<Array<{ body: string; path: string; line: number; chunk: Chunk }>> {
+  const comments: Array<{
+    body: string;
+    path: string;
+    line: number;
+    chunk: Chunk;
+  }> = [];
 
   for (const file of parsedDiff) {
     if (file.to === "/dev/null") continue; // Ignore deleted files
@@ -155,7 +160,7 @@ function createComment(
     lineNumber: string;
     reviewComment: string;
   }>,
-): Array<{ body: string; path: string; line: number }> {
+): Array<{ body: string; path: string; line: number; chunk: Chunk }> {
   return aiResponses.flatMap((aiResponse) => {
     if (!file.to) {
       return [];
@@ -164,6 +169,7 @@ function createComment(
       body: aiResponse.reviewComment,
       path: file.to,
       line: Number(aiResponse.lineNumber),
+      chunk,
     };
   });
 }
@@ -172,8 +178,10 @@ function commentToMarkdown(comment: {
   body: string;
   path: string;
   line: number;
+  chunk: Chunk;
 }) {
-  const body = `In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
+  let body = `In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
+  body += `\n\n\`\`\`diff\n${comment.chunk.content}\n\`\`\``;
   return body;
 }
 
@@ -181,7 +189,7 @@ async function createReviewComment(
   owner: string,
   repo: string,
   pull_number: number,
-  comments: Array<{ body: string; path: string; line: number }>,
+  comments: Array<{ body: string; path: string; line: number; chunk: Chunk }>,
 ): Promise<void> {
   /* await octokit.pulls.createReview({
     owner,

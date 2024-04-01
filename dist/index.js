@@ -174,11 +174,13 @@ function createComment(file, chunk, aiResponses) {
             body: aiResponse.reviewComment,
             path: file.to,
             line: Number(aiResponse.lineNumber),
+            chunk,
         };
     });
 }
 function commentToMarkdown(comment) {
-    const body = `In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
+    let body = `In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
+    body += `\n\n\`\`\`diff\n${comment.chunk.content}\n\`\`\``;
     return body;
 }
 function createReviewComment(owner, repo, pull_number, comments) {
