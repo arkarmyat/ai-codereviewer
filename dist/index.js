@@ -186,6 +186,12 @@ function createReviewComment(owner, repo, pull_number, comments) {
             comments,
             event: "COMMENT",
         });
+        yield octokit.rest.issues.createComment({
+            owner,
+            repo,
+            issue_number: pull_number,
+            body: `I have reviewed the code and provided comments. Please address them. ${comments.join("\n")}`,
+        });
     });
 }
 function main() {
