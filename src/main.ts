@@ -182,11 +182,19 @@ async function createReviewComment(
     event: "COMMENT",
   });
 
-  await octokit.rest.issues.createComment({
+  await octokit.pulls.createReviewComment({
     owner,
+    path: comments[0].path,
     repo,
-    issue_number: pull_number,
-    body: `I have reviewed the code and provided comments. Please address them. ${comments.join("\n")}`,
+    line: comments[0].line,
+    commit_id: process.env.GITHUB_SHA as string,
+    pull_number,
+    body: `I have reviewed the code and provided comments. Please address them. ${comments
+      .map(
+        (comment) =>
+          `In file \`${comment.path}\` on line \`${comment.line}\`: ${comment.body}`,
+      )
+      .join("\n")}`,
   });
 }
 

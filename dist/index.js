@@ -186,11 +186,16 @@ function createReviewComment(owner, repo, pull_number, comments) {
             comments,
             event: "COMMENT",
         });
-        yield octokit.rest.issues.createComment({
+        yield octokit.pulls.createReviewComment({
             owner,
+            path: comments[0].path,
             repo,
-            issue_number: pull_number,
-            body: `I have reviewed the code and provided comments. Please address them. ${comments.join("\n")}`,
+            line: comments[0].line,
+            commit_id: process.env.GITHUB_SHA,
+            pull_number,
+            body: `I have reviewed the code and provided comments. Please address them. ${comments
+                .map((comment) => `In file \`${comment.path}\` on line \`${comment.line}\`: ${comment.body}`)
+                .join("\n")}`,
         });
     });
 }
