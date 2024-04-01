@@ -184,6 +184,7 @@ function createReviewComment(owner, repo, pull_number, comments) {
             repo,
             pull_number,
             comments,
+            event: "COMMENT",
         });
     });
 }

@@ -179,6 +179,7 @@ async function createReviewComment(
     repo,
     pull_number,
     comments,
+    event: "COMMENT",
   });
 }
 
