@@ -181,19 +181,21 @@ function createComment(file, chunk, aiResponses) {
 function commentToMarkdown(comment) {
     let body = `In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
     body += `\n\n\`\`\`diff\n${comment.chunk.content}\n\`\`\``;
-    // add changes and thier line numbers and content
-    body += comment.chunk.changes.map((change) => {
+    // Add changes and their line numbers and content
+    body += comment.chunk.changes
+        .map((change) => {
         if (change.type === "normal") {
-            return `  ${change.ln1} ${change.ln2} ${change.content}`;
+            return `  ${change.ln1},${change.ln2} ${change.content}\n`;
         }
         else if (change.type === "add") {
-            return `+ ${change.ln} ${change.content}`;
+            return `+ ${change.ln} ${change.content}\n`;
         }
         else if (change.type === "del") {
-            return `- ${change.ln} ${change.content}`;
+            return `- ${change.ln} ${change.content}\n`;
         }
         return "";
-    });
+    })
+        .join("");
     body += "\n\n---";
     return body;
 }
