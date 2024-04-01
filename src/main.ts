@@ -174,19 +174,19 @@ async function createReviewComment(
   pull_number: number,
   comments: Array<{ body: string; path: string; line: number }>,
 ): Promise<void> {
-  await octokit.pulls.createReview({
+  /* await octokit.pulls.createReview({
     owner,
     repo,
     pull_number,
     comments,
     event: "COMMENT",
-  });
+  }); */
 
   await octokit.issues.createComment({
     owner,
     repo,
     issue_number: pull_number,
-    body: `I have reviewed the code. Please address the comments.`,
+    body: `${comments.join("\n")}`,
   });
 }
 

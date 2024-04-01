@@ -179,18 +179,18 @@ function createComment(file, chunk, aiResponses) {
 }
 function createReviewComment(owner, repo, pull_number, comments) {
     return __awaiter(this, void 0, void 0, function* () {
-        yield octokit.pulls.createReview({
-            owner,
-            repo,
-            pull_number,
-            comments,
-            event: "COMMENT",
-        });
+        /* await octokit.pulls.createReview({
+          owner,
+          repo,
+          pull_number,
+          comments,
+          event: "COMMENT",
+        }); */
         yield octokit.issues.createComment({
             owner,
             repo,
             issue_number: pull_number,
-            body: `I have reviewed the code. Please address the comments.`,
+            body: `${comments.join("\n")}`,
         });
     });
 }
