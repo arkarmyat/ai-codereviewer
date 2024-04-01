@@ -174,25 +174,11 @@ async function createReviewComment(
   pull_number: number,
   comments: Array<{ body: string; path: string; line: number }>,
 ): Promise<void> {
-  // add comments to the PR
-  // @ts-expect-error - comments is an array
-  await octokit.pulls.createReviewComment({
-    owner,
-    repo,
-    pull_number,
-    comments: comments.map((comment) => ({
-      path: comment.path,
-      position: comment.line,
-      body: comment.body,
-    })),
-  });
-
   await octokit.pulls.createReview({
     owner,
     repo,
     pull_number,
     comments,
-    event: "COMMENT",
   });
 }
 
