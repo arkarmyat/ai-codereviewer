@@ -181,13 +181,6 @@ async function createReviewComment(
     comments,
     event: "COMMENT",
   });
-
-  const allComments = await octokit.pulls.listReviewComments({
-    owner,
-    repo,
-    pull_number,
-  });
-  console.log("All comments:", allComments);
 }
 
 async function main() {
