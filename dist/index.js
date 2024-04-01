@@ -186,12 +186,13 @@ function createReviewComment(owner, repo, pull_number, comments) {
             comments,
             event: "COMMENT",
         });
+        const commit_id = core.getInput("GITHUB_SHA");
         yield octokit.pulls.createReviewComment({
             owner,
             path: comments[0].path,
             repo,
             line: comments[0].line,
-            commit_id: process.env.GITHUB_SHA,
+            commit_id,
             pull_number,
             body: `I have reviewed the code and provided comments. Please address them. ${comments
                 .map((comment) => `In file \`${comment.path}\` on line \`${comment.line}\`: ${comment.body}`)
