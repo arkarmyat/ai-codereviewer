@@ -182,21 +182,11 @@ async function createReviewComment(
     event: "COMMENT",
   });
 
-  const commit_id = core.getInput("GITHUB_SHA");
-
-  await octokit.pulls.createReviewComment({
+  await octokit.issues.createComment({
     owner,
-    path: comments[0].path,
     repo,
-    line: comments[0].line,
-    commit_id,
-    pull_number,
-    body: `I have reviewed the code and provided comments. Please address them. ${comments
-      .map(
-        (comment) =>
-          `In file \`${comment.path}\` on line \`${comment.line}\`: ${comment.body}`,
-      )
-      .join("\n")}`,
+    issue_number: pull_number,
+    body: "I have reviewed the code and provided feedback.",
   });
 }
 
