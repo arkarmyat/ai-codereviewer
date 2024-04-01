@@ -177,6 +177,10 @@ function createComment(file, chunk, aiResponses) {
         };
     });
 }
+function commentToMarkdown(comment) {
+    const body = `In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
+    return body;
+}
 function createReviewComment(owner, repo, pull_number, comments) {
     return __awaiter(this, void 0, void 0, function* () {
         /* await octokit.pulls.createReview({
@@ -190,9 +194,7 @@ function createReviewComment(owner, repo, pull_number, comments) {
             owner,
             repo,
             issue_number: pull_number,
-            body: comments
-                .map((comment) => `**${comment.path}**\n\nLine ${comment.line}: ${comment.body}`)
-                .join("\n\n"),
+            body: comments.map(commentToMarkdown).join("\n\n"),
         });
     });
 }
