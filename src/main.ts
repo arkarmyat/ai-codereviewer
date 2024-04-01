@@ -186,7 +186,12 @@ async function createReviewComment(
     owner,
     repo,
     issue_number: pull_number,
-    body: `${comments.join("\n")}`,
+    body: comments
+      .map(
+        (comment) =>
+          `**${comment.path}**\n\nLine ${comment.line}: ${comment.body}`,
+      )
+      .join("\n\n"),
   });
 }
 
