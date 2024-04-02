@@ -182,8 +182,6 @@ function commentToMarkdown(comment: {
 }) {
   let body = `In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
   body += `\n\n\`\`\`diff\n${comment.chunk.content}\n\`\`\``;
-
-  // Add changes and their line numbers and content
   body += comment.chunk.changes
     .map((change) => {
       if (change.type === "normal") {
@@ -196,7 +194,7 @@ function commentToMarkdown(comment: {
       return "";
     })
     .join("");
-
+  body += "```";
   body += "\n\n---";
 
   return body;
