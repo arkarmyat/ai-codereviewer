@@ -114,7 +114,7 @@ function createPrompt(file, chunk, prDetails) {
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
 - IMPORTANT: NEVER suggest adding comments to the code.
-- provide quick summary about changes table format in the reviewComment.
+- IMPORTANT: In the beginning, give a quick overview of the code changes and context in a table format with titles file name and summary.
 - write a poem about the code changes in the review comment.
 - IMPORTANT : add escape characters for all quotes in the review comment.
 -  ${PROMPT}
