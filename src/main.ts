@@ -60,13 +60,21 @@ async function getDiff(
 async function analyzeCode(
   parsedDiff: File[],
   prDetails: PRDetails,
-): Promise<Array<{ body: string; path: string; line: number; chunk: Chunk ,quickSummary:string}>> {
+): Promise<
+  Array<{
+    body: string;
+    path: string;
+    line: number;
+    chunk: Chunk;
+    quickSummary: string;
+  }>
+> {
   const comments: Array<{
     body: string;
     path: string;
     line: number;
     chunk: Chunk;
-    quickSummary:string;
+    quickSummary: string;
   }> = [];
 
   for (const file of parsedDiff) {
@@ -92,10 +100,8 @@ function createPrompt(file: File, chunk: Chunk, prDetails: PRDetails): string {
 - Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
-- Give quick summary in a code snippet.
 - IMPORTANT: NEVER suggest adding comments to the code.
 - IMPORTANT : add escape characters for all quotes in the review comment.
-- IMPORTANT: use html details and summary tag to hide the review comment and not have long comment.
 -  ${PROMPT}
 Review the following code diff in the file "${
     file.to
@@ -166,7 +172,13 @@ function createComment(
     reviewComment: string;
     quickSummary: string;
   }>,
-): Array<{ body: string; path: string; line: number; chunk: Chunk ,quickSummary:string}> {
+): Array<{
+  body: string;
+  path: string;
+  line: number;
+  chunk: Chunk;
+  quickSummary: string;
+}> {
   return aiResponses.flatMap((aiResponse) => {
     if (!file.to) {
       return [];
@@ -188,8 +200,11 @@ function commentToMarkdown(comment: {
   quickSummary: string;
   chunk: Chunk;
 }) {
-  let body = `In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
-  body += `\n\n<details><summary>Quick Summary</summary>\n\n${comment.quickSummary}\n\n</details>`;
+  let body = `### In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
+  body += `<details><summary>Quick Summary</summary>\n\n <p>`;
+  body += comment.quickSummary;
+  body += `</p>\n\n</details>`;
+  body += `\n\n<details><summary>Details</summary>\n\n${comment.quickSummary}\n\n</details>`;
   body += `\n\n\`\`\`diff\n${comment.chunk.content}\n`;
   body += comment.chunk.changes
     .map((change) => {
@@ -204,6 +219,7 @@ function commentToMarkdown(comment: {
     })
     .join("");
   body += "```";
+  body += `\n\n</details>`;
   body += "\n\n---";
 
   return body;
