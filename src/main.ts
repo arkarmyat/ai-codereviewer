@@ -200,28 +200,35 @@ function commentToMarkdown(comment: {
   quickSummary: string;
   chunk: Chunk;
 }) {
-  let body = `### In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
-  body += `<details><summary>Quick Summary</summary>\n\n <p>`;
-  body += comment.quickSummary;
-  body += `</p>\n\n</details>`;
-  body += `\n\n<details><summary>Details</summary>\n\n${comment.quickSummary}\n\n</details>`;
-  body += `\n\n\`\`\`diff\n${comment.chunk.content}\n`;
-  body += comment.chunk.changes
-    .map((change) => {
-      if (change.type === "normal") {
-        return `  ${change.ln1},${change.ln2} ${change.content}\n`;
-      } else if (change.type === "add") {
-        return `+ ${change.ln} ${change.content}\n`;
-      } else if (change.type === "del") {
-        return `- ${change.ln} ${change.content}\n`;
-      }
-      return "";
-    })
-    .join("");
-  body += "```";
-  body += `\n\n</details>`;
-  body += "\n\n---";
+  let body = `
+#### In file \`${comment.path}\` on \`${comment.line}\`
 
+*Quick summary* : ${comment.quickSummary} 
+
+<p>${comment.body}</p>
+
+<details> 
+     <summary>Expand</summary> <br>
+
+\`\`\`diff
+${comment.chunk.content}
+${comment.chunk.changes
+  .map((change) => {
+    if (change.type === "normal") {
+      return `  ${change.ln1},${change.ln2} ${change.content}`;
+    } else if (change.type === "add") {
+      return `+ ${change.ln} ${change.content}`;
+    } else if (change.type === "del") {
+      return `- ${change.ln} ${change.content}`;
+    }
+    return "";
+  })
+  .join("\n")}
+\`\`\`
+</details>
+
+---
+`;
   return body;
 }
 

@@ -113,10 +113,8 @@ function createPrompt(file, chunk, prDetails) {
 - Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
-- Give quick summary in a code snippet.
 - IMPORTANT: NEVER suggest adding comments to the code.
 - IMPORTANT : add escape characters for all quotes in the review comment.
-- IMPORTANT: use html details and summary tag to hide the review comment and not have long comment.
 -  ${PROMPT}
 Review the following code diff in the file "${file.to}" and take the pull request title and description into account when writing the response.
   
@@ -183,25 +181,37 @@ function createComment(file, chunk, aiResponses) {
     });
 }
 function commentToMarkdown(comment) {
-    let body = `In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
-    body += `\n\n<details><summary>Quick Summary</summary>\n\n${comment.quickSummary}\n\n</details>`;
-    body += `\n\n\`\`\`diff\n${comment.chunk.content}\n`;
-    body += comment.chunk.changes
+    let body = `
+#### In file \`${comment.path}\` on \`${comment.line}\`
+
+*Quick summary* : ${comment.quickSummary} 
+
+<p>${comment.body}</p>
+
+<details> 
+     <summary>Expand</summary> <br>
+
+\`\`\`diff
+${comment.chunk.content}
+${comment.chunk.changes
         .map((change) => {
         if (change.type === "normal") {
-            return `  ${change.ln1},${change.ln2} ${change.content}\n`;
+            return `  ${change.ln1},${change.ln2} ${change.content}`;
         }
         else if (change.type === "add") {
-            return `+ ${change.ln} ${change.content}\n`;
+            return `+ ${change.ln} ${change.content}`;
         }
         else if (change.type === "del") {
-            return `- ${change.ln} ${change.content}\n`;
+            return `- ${change.ln} ${change.content}`;
         }
         return "";
     })
-        .join("");
-    body += "```";
-    body += "\n\n---";
+        .join("\n")}
+\`\`\`
+</details>
+
+---
+`;
     return body;
 }
 function createReviewComment(owner, repo, pull_number, comments) {
