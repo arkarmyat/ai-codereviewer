@@ -24,6 +24,20 @@ interface PRDetails {
   description: string;
 }
 
+interface AIResponse {
+  lineNumber: string;
+  reviewComment: string;
+  quickSummary: string;
+}
+
+interface Comment {
+  body: string;
+  path: string;
+  line: number;
+  quickSummary: string;
+  chunk: Chunk;
+}
+
 async function getPRDetails(): Promise<PRDetails> {
   const { repository, number } = JSON.parse(
     readFileSync(process.env.GITHUB_EVENT_PATH || "", "utf8"),
@@ -126,11 +140,9 @@ ${chunk.changes
 `;
 }
 
-async function getAIResponse(prompt: string): Promise<Array<{
-  lineNumber: string;
-  reviewComment: string;
-  quickSummary: string;
-}> | null> {
+async function getAIResponse(
+  prompt: string,
+): Promise<Array<AIResponse> | null> {
   const queryConfig = {
     model: OPENAI_API_MODEL,
     temperature: 0.2,
@@ -167,18 +179,8 @@ async function getAIResponse(prompt: string): Promise<Array<{
 function createComment(
   file: File,
   chunk: Chunk,
-  aiResponses: Array<{
-    lineNumber: string;
-    reviewComment: string;
-    quickSummary: string;
-  }>,
-): Array<{
-  body: string;
-  path: string;
-  line: number;
-  chunk: Chunk;
-  quickSummary: string;
-}> {
+  aiResponses: Array<AIResponse>,
+): Array<Comment> {
   return aiResponses.flatMap((aiResponse) => {
     if (!file.to) {
       return [];
@@ -193,13 +195,7 @@ function createComment(
   });
 }
 
-function commentToMarkdown(comment: {
-  body: string;
-  path: string;
-  line: number;
-  quickSummary: string;
-  chunk: Chunk;
-}) {
+function commentToMarkdown(comment: Comment) {
   let body = `
 #### In file \`${comment.path}\` on \`${comment.line}\`
 
@@ -236,27 +232,24 @@ async function createReviewComment(
   owner: string,
   repo: string,
   pull_number: number,
-  comments: Array<{
-    body: string;
-    path: string;
-    line: number;
-    chunk: Chunk;
-    quickSummary: string;
-  }>,
+  comments: Array<Comment>,
 ): Promise<void> {
-  /* await octokit.pulls.createReview({
-    owner,
-    repo,
-    pull_number,
-    comments,
-    event: "COMMENT",
-  }); */
+  let totalSummary = comments.map((comment) => comment.quickSummary);
 
+  let body = `## Code Review Summary
+    <ul>
+    ${totalSummary.map((summary) => `<li>${summary}</li>`).join("\n")}
+    </ul>
+
+    ---
+  `;
+
+  body = comments.map(commentToMarkdown).join("\n\n");
   await octokit.issues.createComment({
     owner,
     repo,
     issue_number: pull_number,
-    body: comments.map(commentToMarkdown).join("\n\n"),
+    body,
   });
 }
 

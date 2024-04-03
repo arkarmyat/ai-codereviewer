@@ -216,18 +216,20 @@ ${comment.chunk.changes
 }
 function createReviewComment(owner, repo, pull_number, comments) {
     return __awaiter(this, void 0, void 0, function* () {
-        /* await octokit.pulls.createReview({
-          owner,
-          repo,
-          pull_number,
-          comments,
-          event: "COMMENT",
-        }); */
+        let totalSummary = comments.map((comment) => comment.quickSummary);
+        let body = `## Code Review Summary
+    <ul>
+    ${totalSummary.map((summary) => `<li>${summary}</li>`).join("\n")}
+    </ul>
+
+    ---
+  `;
+        body = comments.map(commentToMarkdown).join("\n\n");
         yield octokit.issues.createComment({
             owner,
             repo,
             issue_number: pull_number,
-            body: comments.map(commentToMarkdown).join("\n\n"),
+            body,
         });
     });
 }
