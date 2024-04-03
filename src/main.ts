@@ -177,6 +177,7 @@ function createComment(
   chunk: Chunk,
   aiResponses: AIResponse,
 ): Array<Comment> {
+  console.log("AI: RESPONSESS\n", aiResponses);
   return aiResponses.reviews.flatMap((aiResponse) => {
     if (!file.to) {
       return [];

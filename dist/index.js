@@ -176,6 +176,7 @@ function getAIResponse(prompt) {
     });
 }
 function createComment(file, chunk, aiResponses) {
+    console.log("AI: RESPONSESS\n", aiResponses);
     return aiResponses.reviews.flatMap((aiResponse) => {
         if (!file.to) {
             return [];
