@@ -115,8 +115,8 @@ function analyzeCode(parsedDiff, prDetails) {
 function createPrompt(file, chunk, prDetails) {
     return `Your task is to review pull requests. Instructions:
 - Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>","quickSummary": "<quick summary>"}],"summary": "<summary>"}
-- Important : make the outputs always json parsable add escape characters for simple quotes, double quotes ,backslashes, backticks and every characters that might need escaping.
 - Do not give positive comments or compliments.
+- IMPORTANT :  Make reviewComment, summary and quickSummary JSON parsable make sure to escape the escape characters.
 - Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array and "summary" should be in markdown table with escape properly.
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
@@ -162,8 +162,8 @@ function getAIResponse(prompt) {
                         content: prompt,
                     },
                 ] }));
-            const res = ((_b = (_a = response.choices[0].message) === null || _a === void 0 ? void 0 : _a.content) === null || _b === void 0 ? void 0 : _b.trim()) || "{}";
-            console.log("OPENAI Response type:", typeof res);
+            let res = ((_b = (_a = response.choices[0].message) === null || _a === void 0 ? void 0 : _a.content) === null || _b === void 0 ? void 0 : _b.trim()) || "{}";
+            // escape the escape characters
             console.log("OPENAI Response :", res);
             let { reviews, summary } = JSON.parse(res).reviews;
             return {
