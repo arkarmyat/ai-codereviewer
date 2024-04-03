@@ -244,7 +244,7 @@ async function createReviewComment(
     ---
   `;
 
-  body = comments.map(commentToMarkdown).join("\n\n");
+  body += comments.map(commentToMarkdown).join("\n\n");
   await octokit.issues.createComment({
     owner,
     repo,

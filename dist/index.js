@@ -224,7 +224,7 @@ function createReviewComment(owner, repo, pull_number, comments) {
 
     ---
   `;
-        body = comments.map(commentToMarkdown).join("\n\n");
+        body += comments.map(commentToMarkdown).join("\n\n");
         yield octokit.issues.createComment({
             owner,
             repo,
