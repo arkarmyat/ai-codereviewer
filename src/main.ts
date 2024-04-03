@@ -197,6 +197,9 @@ function createComment(
 
 function commentToMarkdown(comment: Comment) {
   let body = `
+<details>
+<summary>📝 Review comment</summary>
+
 #### In file \`${comment.path}\` on \`${comment.line}\`
 
 *Quick summary* : ${comment.quickSummary} 
@@ -224,6 +227,7 @@ ${comment.chunk.changes
 </details>
 
 ---
+</details>
 `;
   return body;
 }
