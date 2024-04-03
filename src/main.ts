@@ -152,7 +152,8 @@ async function getAIResponse(prompt: string): Promise<AIResponse | null> {
     });
 
     const res = response.choices[0].message?.content?.trim() || "{}";
-    console.log("OPENAI Response:", res);
+    console.log("OPENAI Response type:", typeof res);
+    console.log("OPENAI Response :", res);
 
     let { reviews, summary } = JSON.parse(res).reviews;
     return {
