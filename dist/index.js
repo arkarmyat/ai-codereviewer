@@ -108,13 +108,13 @@ function analyzeCode(parsedDiff, prDetails) {
 }
 function createPrompt(file, chunk, prDetails) {
     return `Your task is to review pull requests. Instructions:
-- Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>"}]}
+- Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>","quickSummary": "<quick summary>"}]}
 - Do not give positive comments or compliments.
 - Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
+- Give quick summary in a code snippet.
 - IMPORTANT: NEVER suggest adding comments to the code.
-- IMPORTANT: In the beginning, give a quick overview of the code changes and context in a table format with titles file name and summary in a code snippet and escape the quotes.
 - IMPORTANT : add escape characters for all quotes in the review comment.
 - IMPORTANT: use html details and summary tag to hide the review comment and not have long comment.
 -  ${PROMPT}
@@ -177,12 +177,14 @@ function createComment(file, chunk, aiResponses) {
             body: aiResponse.reviewComment,
             path: file.to,
             line: Number(aiResponse.lineNumber),
+            quickSummary: aiResponse.quickSummary,
             chunk,
         };
     });
 }
 function commentToMarkdown(comment) {
     let body = `In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
+    body += `\n\n<details><summary>Quick Summary</summary>\n\n${comment.quickSummary}\n\n</details>`;
     body += `\n\n\`\`\`diff\n${comment.chunk.content}\n`;
     body += comment.chunk.changes
         .map((change) => {

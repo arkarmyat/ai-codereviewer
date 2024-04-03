@@ -60,12 +60,13 @@ async function getDiff(
 async function analyzeCode(
   parsedDiff: File[],
   prDetails: PRDetails,
-): Promise<Array<{ body: string; path: string; line: number; chunk: Chunk }>> {
+): Promise<Array<{ body: string; path: string; line: number; chunk: Chunk ,quickSummary:string}>> {
   const comments: Array<{
     body: string;
     path: string;
     line: number;
     chunk: Chunk;
+    quickSummary:string;
   }> = [];
 
   for (const file of parsedDiff) {
@@ -86,13 +87,13 @@ async function analyzeCode(
 
 function createPrompt(file: File, chunk: Chunk, prDetails: PRDetails): string {
   return `Your task is to review pull requests. Instructions:
-- Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>"}]}
+- Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>","quickSummary": "<quick summary>"}]}
 - Do not give positive comments or compliments.
 - Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
+- Give quick summary in a code snippet.
 - IMPORTANT: NEVER suggest adding comments to the code.
-- IMPORTANT: In the beginning, give a quick overview of the code changes and context in a table format with titles file name and summary in a code snippet and escape the quotes.
 - IMPORTANT : add escape characters for all quotes in the review comment.
 - IMPORTANT: use html details and summary tag to hide the review comment and not have long comment.
 -  ${PROMPT}
@@ -122,6 +123,7 @@ ${chunk.changes
 async function getAIResponse(prompt: string): Promise<Array<{
   lineNumber: string;
   reviewComment: string;
+  quickSummary: string;
 }> | null> {
   const queryConfig = {
     model: OPENAI_API_MODEL,
@@ -162,8 +164,9 @@ function createComment(
   aiResponses: Array<{
     lineNumber: string;
     reviewComment: string;
+    quickSummary: string;
   }>,
-): Array<{ body: string; path: string; line: number; chunk: Chunk }> {
+): Array<{ body: string; path: string; line: number; chunk: Chunk ,quickSummary:string}> {
   return aiResponses.flatMap((aiResponse) => {
     if (!file.to) {
       return [];
@@ -172,6 +175,7 @@ function createComment(
       body: aiResponse.reviewComment,
       path: file.to,
       line: Number(aiResponse.lineNumber),
+      quickSummary: aiResponse.quickSummary,
       chunk,
     };
   });
@@ -181,9 +185,11 @@ function commentToMarkdown(comment: {
   body: string;
   path: string;
   line: number;
+  quickSummary: string;
   chunk: Chunk;
 }) {
   let body = `In file **${comment.path}** on line **${comment.line}**:\n\n${comment.body}`;
+  body += `\n\n<details><summary>Quick Summary</summary>\n\n${comment.quickSummary}\n\n</details>`;
   body += `\n\n\`\`\`diff\n${comment.chunk.content}\n`;
   body += comment.chunk.changes
     .map((change) => {
@@ -207,7 +213,13 @@ async function createReviewComment(
   owner: string,
   repo: string,
   pull_number: number,
-  comments: Array<{ body: string; path: string; line: number; chunk: Chunk }>,
+  comments: Array<{
+    body: string;
+    path: string;
+    line: number;
+    chunk: Chunk;
+    quickSummary: string;
+  }>,
 ): Promise<void> {
   /* await octokit.pulls.createReview({
     owner,
