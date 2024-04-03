@@ -237,11 +237,9 @@ async function createReviewComment(
   let totalSummary = comments.map((comment) => comment.quickSummary);
 
   let body = `## Code Review Summary
-    <ul>
-    ${totalSummary.map((summary) => `<li>${summary}</li>`).join("\n")}
-    </ul>
-
-    ---
+<ul>
+${totalSummary.map((summary) => `<li>${summary}</li>`).join("\n")}
+</ul>
   `;
 
   body += comments.map(commentToMarkdown).join("\n\n");
