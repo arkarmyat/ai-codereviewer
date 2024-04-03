@@ -110,13 +110,14 @@ function createPrompt(file, chunk, prDetails) {
     return `Your task is to review pull requests. Instructions:
 - Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>"}]}
 - Do not give positive comments or compliments.
-- First : Give a quick overview of the code changes for every file in a table format.
-- Then, provide quick and short action instructions in a taaable format.
-- Then, write a poem about the code changes.
 - Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
 - IMPORTANT: NEVER suggest adding comments to the code.
+- FIRST: give a quick overview of the code changes for every file in a table format.
+- provide quick and short action instructions in a table format.
+- write a poem about the code changes.
+-  ${PROMPT}
 Review the following code diff in the file "${file.to}" and take the pull request title and description into account when writing the response.
   
 Pull request title: ${prDetails.title}

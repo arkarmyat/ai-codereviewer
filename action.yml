@@ -11,6 +11,10 @@ inputs:
     description: "OpenAI API model."
     required: false
     default: "gpt-4"
+  PROMPT:
+    description: "Prompt to use for the code review."
+    required: false
+    default: "Review the code changes and provide feedback."
   exclude:
     description: "Glob patterns to exclude files from the diff analysis"
     required: false
