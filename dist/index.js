@@ -87,17 +87,14 @@ function getDiff(owner, repo, pull_number) {
     });
 }
 function analyzeCode(parsedDiff, prDetails) {
-    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         const comments = [];
-        let summary = "";
         for (const file of parsedDiff) {
             if (file.to === "/dev/null")
                 continue; // Ignore deleted files
             for (const chunk of file.chunks) {
                 const prompt = createPrompt(file, chunk, prDetails);
                 const aiResponse = yield getAIResponse(prompt);
-                summary += (_a = aiResponse === null || aiResponse === void 0 ? void 0 : aiResponse.summary) !== null && _a !== void 0 ? _a : "";
                 if (aiResponse) {
                     const newComments = createComment(file, chunk, aiResponse);
                     if (newComments) {
@@ -106,21 +103,18 @@ function analyzeCode(parsedDiff, prDetails) {
                 }
             }
         }
-        return {
-            comments,
-            summary,
-        };
+        return comments;
     });
 }
 function createPrompt(file, chunk, prDetails) {
     return `Your task is to review pull requests. Instructions:
-- Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": <review comment> ,"quickSummary":  <quick summary> }],"summary": <summary>}
-- IMPORTANT :  Make reviewComment, summary and quickSummary JSON parsable make sure to escape the escape characters.
+- Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>","quickSummary": "<quick summary>"}]}
 - Do not give positive comments or compliments.
-- Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array and "summary" should be in markdown table with escape properly.
+- Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
 - IMPORTANT: NEVER suggest adding comments to the code.
+- IMPORTANT : add escape characters for all quotes in the review comment.
 -  ${PROMPT}
 Review the following code diff in the file "${file.to}" and take the pull request title and description into account when writing the response.
   
@@ -162,14 +156,9 @@ function getAIResponse(prompt) {
                         content: prompt,
                     },
                 ] }));
-            let res = ((_b = (_a = response.choices[0].message) === null || _a === void 0 ? void 0 : _a.content) === null || _b === void 0 ? void 0 : _b.trim()) || "{}";
-            // escape the escape characters
-            console.log("OPENAI Response :", res);
-            let { reviews, summary } = JSON.parse(res).reviews;
-            return {
-                reviews,
-                summary,
-            };
+            const res = ((_b = (_a = response.choices[0].message) === null || _a === void 0 ? void 0 : _a.content) === null || _b === void 0 ? void 0 : _b.trim()) || "{}";
+            console.log("OPENAI Response:", res);
+            return JSON.parse(res).reviews;
         }
         catch (error) {
             console.error("OPENAI Error:", error);
@@ -178,8 +167,7 @@ function getAIResponse(prompt) {
     });
 }
 function createComment(file, chunk, aiResponses) {
-    console.log("AI: RESPONSESS\n", aiResponses);
-    return aiResponses.reviews.flatMap((aiResponse) => {
+    return aiResponses.flatMap((aiResponse) => {
         if (!file.to) {
             return [];
         }
@@ -198,7 +186,7 @@ function commentToMarkdown(comment) {
 
 *Quick summary* : ${comment.quickSummary} 
 
-${comment.body}
+${comment.body}\ 
 
 <details> 
      <summary>Expand</summary> <br>
@@ -226,15 +214,20 @@ ${comment.chunk.changes
 `;
     return body;
 }
-function createReviewComment(owner, repo, issue_number, comments, summary) {
+function createReviewComment(owner, repo, pull_number, comments) {
     return __awaiter(this, void 0, void 0, function* () {
-        let body = summary + "\n\n";
-        body = comments.map(commentToMarkdown).join("\n\n");
+        /* await octokit.pulls.createReview({
+          owner,
+          repo,
+          pull_number,
+          comments,
+          event: "COMMENT",
+        }); */
         yield octokit.issues.createComment({
             owner,
             repo,
-            issue_number,
-            body,
+            issue_number: pull_number,
+            body: comments.map(commentToMarkdown).join("\n\n"),
         });
     });
 }
@@ -277,9 +270,9 @@ function main() {
         const filteredDiff = parsedDiff.filter((file) => {
             return !excludePatterns.some((pattern) => { var _a; return (0, minimatch_1.default)((_a = file.to) !== null && _a !== void 0 ? _a : "", pattern); });
         });
-        const { comments, summary } = yield analyzeCode(filteredDiff, prDetails);
+        const comments = yield analyzeCode(filteredDiff, prDetails);
         if (comments.length > 0) {
-            yield createReviewComment(prDetails.owner, prDetails.repo, prDetails.pull_number, comments, summary);
+            yield createReviewComment(prDetails.owner, prDetails.repo, prDetails.pull_number, comments);
         }
     });
 }
