@@ -92,9 +92,9 @@ function createPrompt(file: File, chunk: Chunk, prDetails: PRDetails): string {
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
 - IMPORTANT: NEVER suggest adding comments to the code.
-- FIRST: give a quick overview of the code changes for every file in a table format.
-- provide quick and short action instructions in a table format.
-- write a poem about the code changes.
+- provide quick and short action instructions in a table format in the reviewComment.
+- write a poem about the code changes in the review comment.
+- IMPORTANT : add escape characters for all quotes in the review comment.
 -  ${PROMPT}
 Review the following code diff in the file "${
     file.to
