@@ -114,9 +114,9 @@ function createPrompt(file, chunk, prDetails) {
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
 - IMPORTANT: NEVER suggest adding comments to the code.
-- IMPORTANT: In the beginning, give a quick overview of the code changes and context in a table format with titles file name and summary.
-- write a poem about the code changes in the review comment.
+- IMPORTANT: In the beginning, give a quick overview of the code changes and context in a table format with titles file name and summary in a code snippet and escape the quotes.
 - IMPORTANT : add escape characters for all quotes in the review comment.
+- IMPORTANT: use html details and summary tag to hide the review comment and not have long comment.
 -  ${PROMPT}
 Review the following code diff in the file "${file.to}" and take the pull request title and description into account when writing the response.
   
