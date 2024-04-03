@@ -182,9 +182,6 @@ function createComment(file, chunk, aiResponses) {
 }
 function commentToMarkdown(comment) {
     let body = `
-<details>
-<summary>📝 Review comment</summary>
-
 #### In file \`${comment.path}\` on \`${comment.line}\`
 
 *Quick summary* : ${comment.quickSummary} 
@@ -214,7 +211,6 @@ ${comment.chunk.changes
 </details>
 
 ---
-</details>
 `;
     return body;
 }
@@ -225,8 +221,14 @@ function createReviewComment(owner, repo, pull_number, comments) {
 <ul>
 ${totalSummary.map((summary) => `<li>${summary}</li>`).join("\n")}
 </ul>
+
+<details>
+<summary>📝 Review details</summary>
   `;
         body += comments.map(commentToMarkdown).join("\n\n");
+        body += `
+</details>
+  `;
         yield octokit.issues.createComment({
             owner,
             repo,

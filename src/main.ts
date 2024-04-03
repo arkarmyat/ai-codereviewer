@@ -197,9 +197,6 @@ function createComment(
 
 function commentToMarkdown(comment: Comment) {
   let body = `
-<details>
-<summary>📝 Review comment</summary>
-
 #### In file \`${comment.path}\` on \`${comment.line}\`
 
 *Quick summary* : ${comment.quickSummary} 
@@ -227,7 +224,6 @@ ${comment.chunk.changes
 </details>
 
 ---
-</details>
 `;
   return body;
 }
@@ -244,9 +240,17 @@ async function createReviewComment(
 <ul>
 ${totalSummary.map((summary) => `<li>${summary}</li>`).join("\n")}
 </ul>
+
+<details>
+<summary>📝 Review details</summary>
   `;
 
   body += comments.map(commentToMarkdown).join("\n\n");
+
+  body += `
+</details>
+  `;
+
   await octokit.issues.createComment({
     owner,
     repo,
