@@ -24,6 +24,15 @@ interface PRDetails {
   description: string;
 }
 
+interface AIResponse {
+  summary: string;
+  reviews: Array<{
+    lineNumber: string;
+    reviewComment: string;
+    quickSummary: string;
+  }>;
+}
+
 async function getPRDetails(): Promise<PRDetails> {
   const { repository, number } = JSON.parse(
     readFileSync(process.env.GITHUB_EVENT_PATH || "", "utf8"),
@@ -60,28 +69,16 @@ async function getDiff(
 async function analyzeCode(
   parsedDiff: File[],
   prDetails: PRDetails,
-): Promise<
-  Array<{
-    body: string;
-    path: string;
-    line: number;
-    chunk: Chunk;
-    quickSummary: string;
-  }>
-> {
-  const comments: Array<{
-    body: string;
-    path: string;
-    line: number;
-    chunk: Chunk;
-    quickSummary: string;
-  }> = [];
+): Promise<{ comments: Array<Comment>; summary: string }> {
+  const comments: Array<Comment> = [];
+  let summary = "";
 
   for (const file of parsedDiff) {
     if (file.to === "/dev/null") continue; // Ignore deleted files
     for (const chunk of file.chunks) {
       const prompt = createPrompt(file, chunk, prDetails);
       const aiResponse = await getAIResponse(prompt);
+      summary += aiResponse?.summary ?? "";
       if (aiResponse) {
         const newComments = createComment(file, chunk, aiResponse);
         if (newComments) {
@@ -90,14 +87,17 @@ async function analyzeCode(
       }
     }
   }
-  return comments;
+  return {
+    comments,
+    summary,
+  };
 }
 
 function createPrompt(file: File, chunk: Chunk, prDetails: PRDetails): string {
   return `Your task is to review pull requests. Instructions:
-- Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>","quickSummary": "<quick summary>"}]}
+- Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>","quickSummary": "<quick summary>"}],"summary": "<summary>"}
 - Do not give positive comments or compliments.
-- Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
+- Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array and "summary" should be in markdown table with escape properly.
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
 - IMPORTANT: NEVER suggest adding comments to the code.
@@ -126,11 +126,7 @@ ${chunk.changes
 `;
 }
 
-async function getAIResponse(prompt: string): Promise<Array<{
-  lineNumber: string;
-  reviewComment: string;
-  quickSummary: string;
-}> | null> {
+async function getAIResponse(prompt: string): Promise<AIResponse | null> {
   const queryConfig = {
     model: OPENAI_API_MODEL,
     temperature: 0.2,
@@ -156,30 +152,32 @@ async function getAIResponse(prompt: string): Promise<Array<{
     });
 
     const res = response.choices[0].message?.content?.trim() || "{}";
-    console.log("OPENAI Response:", res);
-    return JSON.parse(res).reviews;
+
+    let { reviews, summary } = JSON.parse(res).reviews;
+    return {
+      reviews,
+      summary,
+    };
   } catch (error) {
     console.error("OPENAI Error:", error);
     return null;
   }
 }
 
-function createComment(
-  file: File,
-  chunk: Chunk,
-  aiResponses: Array<{
-    lineNumber: string;
-    reviewComment: string;
-    quickSummary: string;
-  }>,
-): Array<{
+interface Comment {
   body: string;
   path: string;
   line: number;
   chunk: Chunk;
   quickSummary: string;
-}> {
-  return aiResponses.flatMap((aiResponse) => {
+}
+
+function createComment(
+  file: File,
+  chunk: Chunk,
+  aiResponses: AIResponse,
+): Array<Comment> {
+  return aiResponses.reviews.flatMap((aiResponse) => {
     if (!file.to) {
       return [];
     }
@@ -193,19 +191,13 @@ function createComment(
   });
 }
 
-function commentToMarkdown(comment: {
-  body: string;
-  path: string;
-  line: number;
-  quickSummary: string;
-  chunk: Chunk;
-}) {
+function commentToMarkdown(comment: Comment) {
   let body = `
 #### In file \`${comment.path}\` on \`${comment.line}\`
 
 *Quick summary* : ${comment.quickSummary} 
 
-<p>${comment.body}</p>
+${comment.body}
 
 <details> 
      <summary>Expand</summary> <br>
@@ -235,28 +227,19 @@ ${comment.chunk.changes
 async function createReviewComment(
   owner: string,
   repo: string,
-  pull_number: number,
-  comments: Array<{
-    body: string;
-    path: string;
-    line: number;
-    chunk: Chunk;
-    quickSummary: string;
-  }>,
+  issue_number: number,
+  comments: Array<Comment>,
+  summary: string,
 ): Promise<void> {
-  /* await octokit.pulls.createReview({
-    owner,
-    repo,
-    pull_number,
-    comments,
-    event: "COMMENT",
-  }); */
+  let body = summary + "\n\n";
+
+  body = comments.map(commentToMarkdown).join("\n\n");
 
   await octokit.issues.createComment({
     owner,
     repo,
-    issue_number: pull_number,
-    body: comments.map(commentToMarkdown).join("\n\n"),
+    issue_number,
+    body,
   });
 }
 
@@ -311,13 +294,14 @@ async function main() {
     );
   });
 
-  const comments = await analyzeCode(filteredDiff, prDetails);
+  const { comments, summary } = await analyzeCode(filteredDiff, prDetails);
   if (comments.length > 0) {
     await createReviewComment(
       prDetails.owner,
       prDetails.repo,
       prDetails.pull_number,
       comments,
+      summary,
     );
   }
 }

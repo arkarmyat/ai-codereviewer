@@ -87,14 +87,17 @@ function getDiff(owner, repo, pull_number) {
     });
 }
 function analyzeCode(parsedDiff, prDetails) {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         const comments = [];
+        let summary = "";
         for (const file of parsedDiff) {
             if (file.to === "/dev/null")
                 continue; // Ignore deleted files
             for (const chunk of file.chunks) {
                 const prompt = createPrompt(file, chunk, prDetails);
                 const aiResponse = yield getAIResponse(prompt);
+                summary += (_a = aiResponse === null || aiResponse === void 0 ? void 0 : aiResponse.summary) !== null && _a !== void 0 ? _a : "";
                 if (aiResponse) {
                     const newComments = createComment(file, chunk, aiResponse);
                     if (newComments) {
@@ -103,14 +106,17 @@ function analyzeCode(parsedDiff, prDetails) {
                 }
             }
         }
-        return comments;
+        return {
+            comments,
+            summary,
+        };
     });
 }
 function createPrompt(file, chunk, prDetails) {
     return `Your task is to review pull requests. Instructions:
-- Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>","quickSummary": "<quick summary>"}]}
+- Provide the response in following JSON format:  {"reviews": [{"lineNumber":  <line_number>, "reviewComment": "<review comment>","quickSummary": "<quick summary>"}],"summary": "<summary>"}
 - Do not give positive comments or compliments.
-- Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
+- Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array and "summary" should be in markdown table with escape properly.
 - Write the comment in GitHub Markdown format.
 - Use the given description only for the overall context and only comment the code.
 - IMPORTANT: NEVER suggest adding comments to the code.
@@ -157,8 +163,11 @@ function getAIResponse(prompt) {
                     },
                 ] }));
             const res = ((_b = (_a = response.choices[0].message) === null || _a === void 0 ? void 0 : _a.content) === null || _b === void 0 ? void 0 : _b.trim()) || "{}";
-            console.log("OPENAI Response:", res);
-            return JSON.parse(res).reviews;
+            let { reviews, summary } = JSON.parse(res).reviews;
+            return {
+                reviews,
+                summary,
+            };
         }
         catch (error) {
             console.error("OPENAI Error:", error);
@@ -167,7 +176,7 @@ function getAIResponse(prompt) {
     });
 }
 function createComment(file, chunk, aiResponses) {
-    return aiResponses.flatMap((aiResponse) => {
+    return aiResponses.reviews.flatMap((aiResponse) => {
         if (!file.to) {
             return [];
         }
@@ -186,7 +195,7 @@ function commentToMarkdown(comment) {
 
 *Quick summary* : ${comment.quickSummary} 
 
-<p>${comment.body}</p>
+${comment.body}
 
 <details> 
      <summary>Expand</summary> <br>
@@ -214,20 +223,15 @@ ${comment.chunk.changes
 `;
     return body;
 }
-function createReviewComment(owner, repo, pull_number, comments) {
+function createReviewComment(owner, repo, issue_number, comments, summary) {
     return __awaiter(this, void 0, void 0, function* () {
-        /* await octokit.pulls.createReview({
-          owner,
-          repo,
-          pull_number,
-          comments,
-          event: "COMMENT",
-        }); */
+        let body = summary + "\n\n";
+        body = comments.map(commentToMarkdown).join("\n\n");
         yield octokit.issues.createComment({
             owner,
             repo,
-            issue_number: pull_number,
-            body: comments.map(commentToMarkdown).join("\n\n"),
+            issue_number,
+            body,
         });
     });
 }
@@ -270,9 +274,9 @@ function main() {
         const filteredDiff = parsedDiff.filter((file) => {
             return !excludePatterns.some((pattern) => { var _a; return (0, minimatch_1.default)((_a = file.to) !== null && _a !== void 0 ? _a : "", pattern); });
         });
-        const comments = yield analyzeCode(filteredDiff, prDetails);
+        const { comments, summary } = yield analyzeCode(filteredDiff, prDetails);
         if (comments.length > 0) {
-            yield createReviewComment(prDetails.owner, prDetails.repo, prDetails.pull_number, comments);
+            yield createReviewComment(prDetails.owner, prDetails.repo, prDetails.pull_number, comments, summary);
         }
     });
 }
